@@ -1,0 +1,76 @@
+{
+    "microservices": {
+        "student": {
+            "name": "student",
+            "baseUrl": "http://localhost:8080",
+            "apis": {
+                "GET": {
+                    "/": {
+                        "label": "Get all students"
+                    },
+                    "/:id": {
+                        "label": "Get student by Id"
+                    },
+                    "/technologies/:technology": {
+                        "label": "Get students by technology"
+                    }
+                },
+                "POST": {},
+                "DELETE": {},
+                "PUT": {}
+            }
+        },
+        "employer": {
+            "name": "employer",
+            "baseUrl": "",
+            "apis": {
+                "GET": {
+                    "/": {
+                        "label": "Get all employers"
+                    },
+                    "/:id": {
+                        "label": "Get employer by id"
+                    }
+                },
+                "POST": {},
+                "DELETE": {},
+                "PUT": {}
+            }
+        },
+        "lecturer": {
+            "name": "lecturer",
+            "baseUrl": "",
+            "apis": {
+                "GET": {},
+                "POST": {},
+                "DELETE": {},
+                "PUT": {}
+            }
+        },
+        "post": {
+            "name": "post",
+            "baseUrl": "",
+            "apis": {
+                "GET": {
+                    "/jobposts": {
+                        "label": "Get all job posts"
+                    },
+                    "/jobposts/:id": {
+                        "label": "Get job post by Id"
+                    }
+                },
+                "POST": {
+                    "/jobposts": {
+                        "label": "Create job post"
+                    }
+                },
+                "DELETE": {
+                    "/jobposts/:id": {
+                        "label": "Delete job post by Id"
+                    }
+                },
+                "PUT": {}
+            }
+        }
+    }
+}
