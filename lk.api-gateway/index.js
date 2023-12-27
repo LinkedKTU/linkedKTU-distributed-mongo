@@ -31,7 +31,6 @@ app.get('/api/welcome/', (req, res) => {
 // app.use('/students', routes.student);
 
 // app.use(errorHandler);
-
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);
 });
