@@ -19,18 +19,17 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-    console.log(`Received request on ${req.path}`);
+    // console.log(`Received request on ${req.path}`);
     next();
 });
 
-// GET
-app.get("/", controller.getStudents);
-app.get("/:id", controller.getStudentById);
-app.get("/email/:email", controller.getStudentByEmail);
-app.get("/technologies/:technology", controller.getStudentsByTechnology);
+app.post("/verify/token", controller.verifyToken);
 
-// POST
-app.post("/", controller.createStudent);
+app.post("/student", controller.registerStudent);
+app.post("/employer", controller.registerEmployer);
+app.post("/lecturer", controller.registerLecturer);
+
+app.post("/login", controller.commonLogin);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -1,67 +1,110 @@
 const apiData = require("../acl.json");
+const url = require('url');
+const axios = require('axios');
+const { buildResponse, buildErrorResponse } = require("./responses");
 
-// TODO Update Regex
-function extractPathSegment(path) {
-    if(!path) {
-        return null;
-    }
+const getPathAfterMs = (reqPath) => {
+    const segments = reqPath.split('/');
 
-    // to secure regex by making sure last character of path is "/"
-    if(path.charAt(path.length - 1) !== "/") {
-        path = path + "/";
+    if (segments[0] === '') {
+        segments.shift();
     }
-    
-    const regex = /\/api\/([^\/]+)\/([^\/]+)\//;
-    const match = path.match(regex);
-    
-    console.log('match: ', match);
-    if(!match) {
-        return "/";
-    }
-    return "/" + match[2];
+    segments.shift();
+    const restOfThePath = segments.join('/');
+
+    return restOfThePath;
 };
 
-const executeRequest = async ({ requestUrl, req, res, next }) => {
+const executeRequest = async ({ microserviceData, req }) => {
+    let path = getPathAfterMs(req.path);
 
-    // TODO fetch
+    let reqMethod = req.method.toLowerCase();
+    let requestUrl = microserviceData.baseUrl + "/" + path;
+
+    try{
+
+        let config = {
+            method: reqMethod,
+            url: requestUrl,
+            params: req.params,
+            data: req.query
+        };
+        
+        if(reqMethod == "put" || reqMethod == "post") {
+            config.data = { ...config.data, ...req.body };
+        }
+
+        // let response = await axios[reqMethod](requestUrl);
+        let response = await axios(config);
     
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept'
-    );
-    next();
+        return Promise.resolve({ response });
+    } catch(error) {
+        return Promise.reject(error);
+    }
+};
+
+const getMicroserviceNameByPath = (reqPath) => {
+    const path = url.parse(reqPath).pathname;
+    const microserviceName = path.split('/')[1];
+
+    return microserviceName;
+};
+
+const getMicroserviceDataByName = (msName) => {
+    return apiData.microservices[msName];
+};
+
+const verifyToken = async (req, options) => {
+    let token = req.headers["authorization"];
+    if(!token && !options.sentByAuth) {
+        return false;
+    }
+
+    let authMs = apiData.microservices["auth"];
+
+    let config = {
+        method: 'POST',
+        data: req.query,
+        url: authMs.baseUrl + "/verify/token",
+        headers: {
+            'Authorization': token
+        }
+    };
+
+    try {
+        let verificationResponse = await axios(config);
+        console.log('verificationResponse: ', verificationResponse);
+        // TODO
+
+        return verificationResponse;
+    } catch (error) {
+        return false;
+    }
 };
 
 const redirectRequest = async (req, res, next) => {
-    let { path, method } = req;
+    let microserviceName = getMicroserviceNameByPath(req.url);
 
-    let requestedMicroservice = path.split("/")[2];
+    let microserviceData = getMicroserviceDataByName(microserviceName);
 
-    let apisByMethod = apiData.microservices[requestedMicroservice]["apis"][method];
+    let sentByAuth = req.query.sentByAuth == "true"; 
+    if(microserviceName !== "auth" && !sentByAuth) {
+        let verified = await verifyToken(req, { sentByAuth });
 
-    let processedPath = extractPathSegment(path);
-    if(processedPath === null) {
-        // TODO return error
-        console.log("API does not exist!");
-        return next();
-    };
-    console.log("processedPath: ", processedPath);
-    
-    let pathFound = apisByMethod[processedPath];
-    if(pathFound && pathFound.label) {
+        if(!verified) {
+            return buildErrorResponse({ message: "Not authorized!" }, res);
+        }
+    }
 
-        let baseUrl = apiData.microservices[requestedMicroservice].baseUrl;
-        let requestUrl = baseUrl + processedPath;
+    try {
+        let response = await executeRequest({ microserviceData, req });
+        if(!response) {
+            buildErrorResponse({ message: "Could not get response!" }, res);
+        }
 
-        let response = await executeRequest({
-            requestUrl,
-            req,
-            res,
-            next
-        });
-
-        console.log(response);
+        buildResponse(response, res);
+    } catch(error) {
+        buildErrorResponse(error, res);
     }
 
     return next();
